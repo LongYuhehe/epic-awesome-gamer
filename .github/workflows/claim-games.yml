@@ -1,0 +1,49 @@
+# 工作流名称
+name: EPIC 免费人 (Claim Epic Free Games)
+
+# 控制工作流何时运行
+on:
+  # 允许您从Actions标签手动运行此工作流
+  workflow_dispatch:
+
+  # 按计划运行（在UTC时间每周五的08:00）
+  # 您可以使用cron语法自定义计划。
+  # '0 8 * * 5'表示：0分钟，8小时，任何月份，任何月份，周五的第5天（周五）。
+  schedule:
+    - cron: '0 8 * * 5'
+
+jobs:
+  # 工作流中的单个作业
+  claim-games:
+    # 作业将在何种类型的运行器上运行
+    runs-on: ubuntu-latest
+
+    steps:
+      # 步骤1：检出您的仓库代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 步骤2：从GitHub Secrets创建.env文件
+      # docker-compose.yml文件配置为从.env文件中读取这些变量。
+      - name: Create .env file for Docker
+        run: |
+          echo "进入docker目录..."
+          cd docker
+          
+          echo "创建.env文件..."
+          echo "EPIC_EMAIL=${{ secrets.EPIC_EMAIL }}" >> .env
+          echo "EPIC_PASSWORD=${{ secrets.EPIC_PASSWORD }}" >> .env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+          
+          echo ".env文件创建成功。内容（秘密已隐藏）："
+          cat .env
+
+      # 步骤3：使用Docker Compose运行claim脚本
+      # 这是使用项目推荐的部署方法。
+      - name: Run Epic Awesome Gamer
+        run: |
+          cd docker
+          # --exit-code-from标志确保如果'app'容器失败，
+          # Docker Compose命令（以及GitHub Actions步骤）也将失败。
+          # --abort-on-container-exit标志在任何容器退出时停止所有容器。
+          docker compose up --abort-on-container-exit --exit-code-from app
